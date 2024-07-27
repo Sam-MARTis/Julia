@@ -9,15 +9,16 @@ function fprime(x, mat, finalVec)
     return mat*x - finalVec
 end
 
-for _=1:50
+for i ∈ 1:50
     global x
     r = -fprime(x, A, b)
-    # println(r)
     alpha = (dot(r , r)/dot(r, (A*r)))
-
     x = x + (alpha*r)
 end
 
+print("Soution obtained is: ")
 println(x)
+print("Actual solution is: ")
+println(A\b)
 
 
