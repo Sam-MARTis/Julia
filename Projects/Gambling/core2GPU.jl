@@ -1,7 +1,7 @@
 print("\033c")
 
 using CUDA
-function proceed(State, Bet_Result, size)
+function proceed!(State, Bet_Result, size)
     index = ((blockIdx().x -1)*blockDim().x) + threadIdx().x
     stride = gridDim().x * blockDim().x
     for i ∈ index:stride:size
@@ -16,16 +16,34 @@ function proceed(State, Bet_Result, size)
     end
 end 
 
-const iterations:: Int32 = 1000
-const people:: Int32 = 100
-const initialBalance:: Int32 = 1000
-function main()
-    state = CUDA.fill(initialBalance, people)
-    for j∈ 1:iterations
-        for k ∈ 1:people
-
-        end
+function demo_func!(state, randval)
+    index = ((blockIdx().x -1)*blockDim().x) + threadIdx().x
+    stride = gridDim().x*blockDim().x
+    for i ∈ index:stride:length(state)/4
+        state[index] += 1
     end
+    return nothing
+    
 end
+
+# const iterations = 1000
+const people = 200000
+const initialBalance = 1000
+function main_func()
+    state = ones(people, 4)
+    state[:, 1] .= initialBalance
+    state_d = CuArray(state)
+    random_d = CUDA.rand(Bool, people)
+
+    # # @cuda threads=people blocks=1 proceed!(state_d, random_d, people)
+    blockCount = cld(length(state), 256)
+    @cuda threads=256 blocks=blockCount demo_func!(state_d, random_d)
+    # println(Array(state_d))
+end
+
+
+
+main_func()
+
 
 
