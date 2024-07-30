@@ -1,46 +1,31 @@
-using CUDA
-using Plots
-
 print("\033c")
 
-const startBettingWith = 1
-const startingBalance = 10000
-const playersCount = 1000000
-const iterationCount = 500000
+using CUDA
+function proceed(State, Bet_Result, size)
+    index = ((blockIdx().x -1)*blockDim().x) + threadIdx().x
+    stride = gridDim().x * blockDim().x
+    for i ∈ index:stride:size
+        #1 is balance
+        #2 is bet amount.
+        #3 is iteration survives
+        #4 is 'isAlive?'
+        State[i][1] += State[i][2]*(2*Bet_Result[i] - 1)
+        State[i][4] = (State[1][1]>0)
+        State[i][2] = (2*State[i][2]*Bet_Result[i] + 1*(1-Bet_Result[i]))*State[i][4]
+        State[i][3] += 1*State[4]
+    end
+end 
 
-function bet!(balance, amount)
-    balance .= balance .- amount
-    win = CUDA.rand(length(balance)) .> 0.5
-    balance[win] .= balance[win] .+ 2 .* amount[win]
-    return win
-end
+const iterations:: Int32 = 1000
+const people:: Int32 = 100
+const initialBalance:: Int32 = 1000
+function main()
+    state = CUDA.fill(initialBalance, people)
+    for j∈ 1:iterations
+        for k ∈ 1:people
 
-people = CUDA.zeros(Int, iterationCount)
-initial_betamt = CUDA.fill(startBettingWith, playersCount)
-initial_balance = CUDA.fill(startingBalance, playersCount)
-
-betamt = similar(initial_betamt)
-balance = similar(initial_balance)
-
-for j in 1:playersCount
-    CUDA.copyto!(betamt, initial_betamt)
-    CUDA.copyto!(balance, initial_balance)
-
-    for i in 1:iterationCount
-        win = bet!(balance, betamt)
-        betamt .= ifelse(win, 1, betamt .* 2)
-
-        bankrupt = balance .< 0
-        if any(bankrupt)
-            CUDA.atomic_add!(people, i, sum(bankrupt))
-            break
         end
     end
-
-    if mod(j, 10000) == 1
-        println(j)
-    end
 end
 
-people_cpu = Array(people)
-plot(people_cpu)
+
