@@ -2,9 +2,9 @@ using Plots
 print("\033c")
 
 const startBettingWith = 1
-const startingBalance = 10000
-const playersCount = 1000000
-const iterationCount = 500000
+const startingBalance = 100
+const playersCount = 10000
+const iterationCount = 50000
 
 
 
