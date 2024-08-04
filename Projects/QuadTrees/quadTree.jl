@@ -7,14 +7,13 @@ using StaticArrays
 
 module Helpers
 export inRange
-Base.@pure function inRange(x::Float32, y::Float32, rx1::Float32, ry1::Float32, width::Float32, height::Float32)
-	return ((x >= rx1) && x <= (rx1 + width)) && ((y >= ry1) && (y <= ry1 + height))
-end
+    Base.@pure function inRange(x::Float32, y::Float32, rx1::Float32, ry1::Float32, width::Float32, height::Float32)
+        return ((x >= rx1) && x <= (rx1 + width)) && ((y >= ry1) && (y <= ry1 + height))
+    end
 
-Base.@pure function doesIntersect(x1, y1, w1, h1, x2, y2, w2, h2)
-	return (x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2)
-end
-
+    Base.@pure function doesIntersect(x1, y1, w1, h1, x2, y2, w2, h2)
+        return (x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2)
+    end
 end
 
 module custom_types
@@ -154,8 +153,9 @@ b1 = Body(1.0f0, 1.0f0, 1.0f0, 0.0f0, 0.0f0)
 b2 = Body(2.0f0, 2.0f0, 1.0f0, 0.0f0, 0.0f0)
 b3 = Body(3.0f0, 3.0f0, 1.0f0, 0.0f0, 0.0f0)
 b4 = Body(4.0f0, 4.0f0, 1.0f0, 0.0f0, 0.0f0)
-b5 = Body(5.0f0, 5.0f0, 1.0f0, 0.0f0, 0.0f0)
+b5 = Body(4.1f0, 4.0f0, 1.0f0, 0.0f0, 0.0f0)
 b6 = Body(6.0f0, 6.0f0, 1.0f0, 0.0f0, 0.0f0)
+b7 = Body(2.0f0, 6.1f0, 1.0f0, 0.0f0, 0.0f0)
 myTree::QuadTree = QuadTree(0.0f0, 0.0f0, 10.0f0, 10.0f0)
 addPoint(myTree, b1)
 addPoint(myTree, b2)
@@ -169,7 +169,15 @@ println(myTree.isDivided)
 
 addPoint(myTree, b5)
 println(myTree.isDivided)
-# println(inRange(1, 3, 0, 0, 2, 2))
+addPoint(myTree, b6)
+addPoint(myTree, b7)
+println(myTree.count)
+println(myTree.subTrees[1].count)
+println(myTree.subTrees[2].count)
+println(myTree.subTrees[3].count)
+
+println(myTree.subTrees[4].count)
+
 
 # function 
 # exit()
