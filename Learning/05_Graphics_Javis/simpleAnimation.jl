@@ -17,8 +17,9 @@ end
 myvideo = Video(500, 500)
 Javis.Background(1:70, ground)
 red_ball = Object(1:70, (args...) -> object(O, "red"), Point(100, 0))
-blue_ball = Object(1:70, (args...) -> object(O, "blue"), Point(200, 80))
+# blue_ball = Object(1:70, (args...) -> object(O, "blue"), Point(200, 80))
 
+act!(red_ball, Action(anim_rotate_around(2π, O)))
 
 render(
     myvideo;
