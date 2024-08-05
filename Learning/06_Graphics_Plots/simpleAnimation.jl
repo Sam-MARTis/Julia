@@ -11,39 +11,21 @@ c = zeros(length(a))
 
 using Plots
 using Printf
-anim = @animate for i in 1:10
+anim = @animate for i in 1:100
     plot()
-    for j in eachindex(a)
-
+    
 
         scatter!(a, sin.(a+c))
-        c.+= 0.001
-        println(j)
-    end
+
+    c.+= 0.005
     # scatter!(a, )
     # title!(Printf.format("Time: %d", i))
     xlabel!("x")
     ylabel!("y")
 end
-# plot()
-# scatter!(a, b)
 
-# N = 1  # Number of particles
-# T = 100  # Number of time steps
-# positions = rand(N, 3, T)  # Replace with your actual data
 
-# # Set up the animation
-# anim = @animate for t in 1:T
-#     plot()
-#     for i in 1:N
-#         # scatter!(positions[i, 1, 1:t], positions[i, 2, 1:t], positions[i, 3, 1:t], label=false)
-#         scatter!(b)
-#     end
-#     title!(Printf.format("Time: %d", t))
-#     xlabel!("x")
-#     ylabel!("y")
-#     zlabel!("z")
-# end
 
-# # Save the animation as a GIF
-gif(anim, "n_body_simulation.gif", fps=15)
+
+
+gif(anim, "./Learning/06_Graphics_Plots/n_body_simulation.gif", fps=15)
