@@ -2,8 +2,9 @@ print("\033c")
 using LinearAlgebra
 using Plots
 using Animations
+using CUDA
 gr()
-PARTICLES = 400
+PARTICLES = 40
 G = 10000
 maxForce = 8
 dt = 0.1
@@ -49,16 +50,43 @@ end
 # updateForceAtParticle(mainList, 1, G)
 # updateForceAtParticle(mainList, 2, G)
 # updateValues(mainList, dt)
+
+function gpu_updateForceAtParticles(mainList, G, maxForce)
+    index = ((blockIdx().x -1)*blockDim().x) + threadIdx().x
+    stride = gridDim().x*blockDim().x
+
+    for i ∈ index:stride:length(mainList[:, 1, 1])
+        for j ∈ 1:length(mainList[:, 1, 1])
+            if i == j
+                continue
+            else
+                r = mainList[j, 1, :] - mainList[i, 1, :]
+                F = r*G*mainList[i, 4, 1]*mainList[j, 4, 1]/(norm(r)^3)
+                F = F*(norm(F)<maxForce) + F*(norm(F)>=maxForce)*maxForce/norm(F)
+                mainList[i, 3, :] += F
+            end
+        end
+    end
+
+end
+
+
+mainList_d = CuArray(mainList)
 anim = @animate for i in 1:50
     plot()
     plot!(legend= false)
+    global mainList, mainList_d
+    # mainList = Array(mainList_d)
     
 
-    scatter!(mainList[:, 1, 1], mainList[:, 1, 2], xlims = (0, 300), ylims = (0, 300))
-    for j ∈ 1:PARTICLES
-        updateForceAtParticle(mainList, j, G, maxForce)
-    end
+    scatter!(mainList[:, 1, 1],mainList[:, 1, 2], xlims = (0, 300), ylims = (0, 300))
+    # for j ∈ 1:PARTICLES
+    #     updateForceAtParticle(mainList_d, j, G, maxForce)
+    # end
+    @cuda threads=256 blocks=ceil(Int, PARTICLES/256) gpu_updateForceAtParticles(mainList_d, G, maxForce)
+    mainList = Array(mainList_d)
     updateValues(mainList, dt)
+    mainList_d = CuArray(mainList)
     xlabel!("x")
     ylabel!("y")
 end
