@@ -11,8 +11,12 @@ c = zeros(length(a))
 
 using Plots
 using Printf
-anim = @animate for i in 1:100
+
+
+anim = @animate for i in 1:10
     plot()
+    # plot!(Plots.Legend = false)
+    plot!(legend= false)
     
 
         scatter!(a, sin.(a+c))
