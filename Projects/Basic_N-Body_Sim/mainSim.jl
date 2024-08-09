@@ -51,45 +51,55 @@ end
 # updateForceAtParticle(mainList, 2, G)
 # updateValues(mainList, dt)
 
-function gpu_updateForceAtParticles(mainList, G, maxForce)
+function gpu_updateParticles(mainList, G:: Int32, maxForceSquared:: Float32)
     index = ((blockIdx().x -1)*blockDim().x) + threadIdx().x
     stride = gridDim().x*blockDim().x
 
+    # for i ∈ index:stride:length(mainList[:, 1, 1])
+    #     for j ∈ 1:length(mainList[:, 1, 1])
+    #         if i == j
+    #             continue
+    #         else
+    #             r = mainList[j, 1, :] - mainList[i, 1, :]
+    #             normRSquared = (r[1]^2 + r[2]^2)
+    #             F = r*G*mainList[i, 4, 1]*mainList[j, 4, 1]/(normRSquared^(3/2))
+    #             normFSquared = F[1]^2 + F[2]^2 
+    #             # F = F*(normFSquared<maxForceSquared) +(normFSquared>=maxForceSquared)*((maxForceSquared/normFSquared)^0.5)*F
+    #             mainList[i, 3, :] .+= F
+    #         end
+    #     end
+    # end
     for i ∈ index:stride:length(mainList[:, 1, 1])
-        for j ∈ 1:length(mainList[:, 1, 1])
-            if i == j
-                continue
-            else
-                r = mainList[j, 1, :] - mainList[i, 1, :]
-                F = r*G*mainList[i, 4, 1]*mainList[j, 4, 1]/(norm(r)^3)
-                F = F*(norm(F)<maxForce) + F*(norm(F)>=maxForce)*maxForce/norm(F)
-                mainList[i, 3, :] += F
-            end
-        end
+        mainList[i, 1, :] .+= mainList[i, 2, :]*dt/2
+        mainList[i, 2, :] .+= (mainList[i, 3, :]*dt ./ mainList[i, 4, 1])
+        mainList[i, 1, :] .+= mainList[i, 2, :]*dt/2
+        mainList[i, 3, :] .= 0
     end
 
 end
 
 
 mainList_d = CuArray(mainList)
-anim = @animate for i in 1:50
-    plot()
-    plot!(legend= false)
-    global mainList, mainList_d
-    # mainList = Array(mainList_d)
-    
+@cuda threads=256 blocks=1 gpu_updateParticles(mainList_d, Int32(G), maxForce)
+# anim = @animate for i in 1:50
+#     plot()
+#     plot!(legend= false)
+#     global mainList, mainList_d
+#     # mainList = Array(mainList_d)
 
-    scatter!(mainList[:, 1, 1],mainList[:, 1, 2], xlims = (0, 300), ylims = (0, 300))
-    # for j ∈ 1:PARTICLES
-    #     updateForceAtParticle(mainList_d, j, G, maxForce)
-    # end
-    @cuda threads=256 blocks=ceil(Int, PARTICLES/256) gpu_updateForceAtParticles(mainList_d, G, maxForce)
-    mainList = Array(mainList_d)
-    updateValues(mainList, dt)
-    mainList_d = CuArray(mainList)
-    xlabel!("x")
-    ylabel!("y")
-end
+
+#     scatter!(mainList[:, 1, 1],mainList[:, 1, 2], xlims = (0, 300), ylims = (0, 300))
+#     # for j ∈ 1:PARTICLES
+#     #     updateForceAtParticle(mainList_d, j, G, maxForce)
+#     # end
+#     @cuda threads=256 blocks=ceil(Int, PARTICLES/256) gpu_updateParticles(mainList_d, G, maxForce)
+
+#     mainList = Array(mainList_d)
+#     # updateValues(mainList, dt)
+#     # mainList_d = CuArray(mainList)
+#     xlabel!("x")
+#     ylabel!("y")
+# end
 
 
 display(anim)
