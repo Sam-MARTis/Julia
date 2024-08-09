@@ -4,9 +4,9 @@ using Plots
 using Animations
 using CUDA
 gr()
-PARTICLES = 40
-G = 10000
-maxForce = 8
+PARTICLES = 4000
+G = 100
+maxForce = 30
 dt = 0.1
 
 mainList = zeros(Float32, PARTICLES, 4, 2)
@@ -60,20 +60,36 @@ function gpu_updateParticles(mainList, G:: Int32, maxForceSquared:: Float32, dt:
     # index = ((blockIdx().x -1)*blockDim().x) + threadIdx().x
     stride = gridDim().x*blockDim().x
 
-    # for i ∈ index:stride:length(mainList[:, 1, 1])
-    #     for j ∈ 1:length(mainList[:, 1, 1])
-    #         if i == j
-    #             continue
-    #         else
-    #             r = mainList[j, 1, :] - mainList[i, 1, :]
-    #             normRSquared = (r[1]^2 + r[2]^2)
+    for i ∈ index:stride:size(mainList, 1)
+        for j in axes(mainList, 1)
+            if i == j
+                continue
+            else
+                # r =  mainList[j, 1, :] -mainList[i, 1, :]
+                dx = mainList[j, 1, 1] - mainList[i, 1, 1]
+                dy = mainList[j, 1, 2] - mainList[i, 1, 2]
+                normRSquared = dx*dx + dy*dy
+                if normRSquared == 0
+                    continue
+                else
+
+                Fx = dx*G*mainList[i, 4, 1]*mainList[j, 4, 1]/(normRSquared^(3/2))
+                Fy = dy*G*mainList[i, 4, 1]*mainList[j, 4, 1]/(normRSquared^(3/2))
+                normFSquared = Fx*Fx + Fy*Fy
+                Fx = Fx*(normFSquared<maxForceSquared) + (normFSquared>=maxForceSquared)*((maxForceSquared/normFSquared)^0.5)*Fx
+                Fy = Fy*(normFSquared<maxForceSquared) + (normFSquared>=maxForceSquared)*((maxForceSquared/normFSquared)^0.5)*Fy
+                mainList[i, 3, 1] += Fx
+                mainList[i, 3, 2] += Fy
+                end
+                # normRSquared = (r[1]^2 + r[2]^2)
+                # normRSquared = (r[1]*r[1] + r[2]*r[2])
     #             F = r*G*mainList[i, 4, 1]*mainList[j, 4, 1]/(normRSquared^(3/2))
     #             normFSquared = F[1]^2 + F[2]^2 
     #             F = F*(normFSquared<maxForceSquared) +(normFSquared>=maxForceSquared)*((maxForceSquared/normFSquared)^0.5)*F
     #             mainList[i, 3, :] .+= F
-    #         end
-    #     end
-    # end
+            end
+        end
+    end
     for i ∈ index:stride:size(mainList, 1)
         for k in axes(mainList, 3)
             mainList[i, 1, k] += mainList[i, 2, k] * dt / 2
@@ -93,33 +109,34 @@ function gpu_updateParticles(mainList, G:: Int32, maxForceSquared:: Float32, dt:
 
 end
 
-
+# println(mainList)
 mainList_d = CuArray(mainList)
-@cuda threads=256 blocks=3 gpu_updateParticles(mainList_d, Int32(G), Float32(maxForce), Float32(dt))
-# anim = @animate for i in 1:50
-#     plot()
-#     plot!(legend= false)
-#     global mainList, mainList_d
-#     # mainList = Array(mainList_d)
+# @cuda threads=256 blocks=5 gpu_updateParticles(mainList_d, Int32(G), Float32(maxForce), Float32(dt))
+# println(Array(mainList_d))
+anim = @animate for i in 1:200
+    plot()
+    plot!(legend= false)
+    global mainList_d
+    local listMine = Array(mainList_d)
+
+    # mainList = Array(mainList_d)
 
 
-#     scatter!(mainList[:, 1, 1],mainList[:, 1, 2], xlims = (0, 300), ylims = (0, 300))
-#     # for j ∈ 1:PARTICLES
-#     #     updateForceAtParticle(mainList_d, j, G, maxForce)
-#     # end
-#     @cuda threads=256 blocks=ceil(Int, PARTICLES/256) gpu_updateParticles(mainList_d, G, maxForce)
+    scatter!(listMine[:, 1, 1],listMine[:, 1, 2], xlims = (0, 300), ylims = (0, 300))
 
-#     mainList = Array(mainList_d)
-#     # updateValues(mainList, dt)
-#     # mainList_d = CuArray(mainList)
-#     xlabel!("x")
-#     ylabel!("y")
-# end
+    @cuda threads=256 blocks=ceil(Int, PARTICLES/256) gpu_updateParticles(mainList_d, Int32(G), Float32(maxForce), Float32(dt))
+
+    mainList = Array(mainList_d)
+    # updateValues(mainList, dt)
+    # mainList_d = CuArray(mainList)
+    xlabel!("x")
+    ylabel!("y")
+end
 
 
 # display(anim)
 # animate(anim)
-# gif(anim, "./Projects/Basic_N-Body_Sim/n_body_simulation.gif", fps=15)
+gif(anim, "./Projects/Basic_N-Body_Sim/n_body_simulation.gif")
 # for i ∈ 1:200
 #     for j ∈ 1:PARTICLES
 #         updateForceAtParticle(mainList, j, G)
