@@ -4,10 +4,12 @@ using Plots
 using Animations
 using CUDA
 gr()
-PARTICLES = 4000
+PARTICLES = 8000
+
 G = 100
-maxForce = 30
+maxForce = 150
 dt = 0.1
+min_range, max_range = 50, 850
 
 mainList = zeros(Float32, PARTICLES, 4, 2)
 mainList[:, 4, 1] .= 1
@@ -16,7 +18,7 @@ mainList[:, 4, 2] .= 1
 # mainList[:, 1, 1] .= rand(1:300)
 # mainList[:, 1, 2] .= rand(1:300)
 
-mainList[:, 1, :] = rand(1:300, PARTICLES, 2)
+mainList[:, 1, :] = rand(min_range:max_range, PARTICLES, 2)
 
 function maxVec(v, maxVal)
     v .= ((v.<maxVal).*v) .+ ((v.>=maxVal).*maxVal)
@@ -113,7 +115,7 @@ end
 mainList_d = CuArray(mainList)
 # @cuda threads=256 blocks=5 gpu_updateParticles(mainList_d, Int32(G), Float32(maxForce), Float32(dt))
 # println(Array(mainList_d))
-anim = @animate for i in 1:200
+anim = @animate for i in 1:800
     plot()
     plot!(legend= false)
     global mainList_d
@@ -122,7 +124,7 @@ anim = @animate for i in 1:200
     # mainList = Array(mainList_d)
 
 
-    scatter!(listMine[:, 1, 1],listMine[:, 1, 2], xlims = (0, 300), ylims = (0, 300))
+    scatter!(listMine[:, 1, 1],listMine[:, 1, 2], xlims = (min_range-200, max_range+200), ylims = (min_range-200, max_range+200), markersize = 1, color = :blue)
 
     @cuda threads=256 blocks=ceil(Int, PARTICLES/256) gpu_updateParticles(mainList_d, Int32(G), Float32(maxForce), Float32(dt))
 
@@ -136,7 +138,7 @@ end
 
 # display(anim)
 # animate(anim)
-gif(anim, "./Projects/Basic_N-Body_Sim/n_body_simulation.gif")
+gif(anim, "./Projects/Basic_N-Body_Sim/n-body-simulation_$(PARTICLES)-particles_$(dt)-dt_$(G)-G.gif")
 # for i ∈ 1:200
 #     for j ∈ 1:PARTICLES
 #         updateForceAtParticle(mainList, j, G)
