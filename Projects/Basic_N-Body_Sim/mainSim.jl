@@ -9,7 +9,7 @@ G = 10000
 maxForce = 8
 dt = 0.1
 
-mainList = zeros(PARTICLES, 4, 2)
+mainList = zeros(Float32, PARTICLES, 4, 2)
 mainList[:, 4, 1] .= 1
 mainList[:, 4, 2] .= 1
 
@@ -51,8 +51,13 @@ end
 # updateForceAtParticle(mainList, 2, G)
 # updateValues(mainList, dt)
 
-function gpu_updateParticles(mainList, G:: Int32, maxForceSquared:: Float32)
+function gpu_updateParticles(mainList, G:: Int32, maxForceSquared:: Float32, dt:: Float32)
+    # inVal = 3
+    
+
     index = ((blockIdx().x -1)*blockDim().x) + threadIdx().x
+    # indx = 3
+    # index = ((blockIdx().x -1)*blockDim().x) + threadIdx().x
     stride = gridDim().x*blockDim().x
 
     # for i ∈ index:stride:length(mainList[:, 1, 1])
@@ -64,23 +69,33 @@ function gpu_updateParticles(mainList, G:: Int32, maxForceSquared:: Float32)
     #             normRSquared = (r[1]^2 + r[2]^2)
     #             F = r*G*mainList[i, 4, 1]*mainList[j, 4, 1]/(normRSquared^(3/2))
     #             normFSquared = F[1]^2 + F[2]^2 
-    #             # F = F*(normFSquared<maxForceSquared) +(normFSquared>=maxForceSquared)*((maxForceSquared/normFSquared)^0.5)*F
+    #             F = F*(normFSquared<maxForceSquared) +(normFSquared>=maxForceSquared)*((maxForceSquared/normFSquared)^0.5)*F
     #             mainList[i, 3, :] .+= F
     #         end
     #     end
     # end
-    for i ∈ index:stride:length(mainList[:, 1, 1])
-        mainList[i, 1, :] .+= mainList[i, 2, :]*dt/2
-        mainList[i, 2, :] .+= (mainList[i, 3, :]*dt ./ mainList[i, 4, 1])
-        mainList[i, 1, :] .+= mainList[i, 2, :]*dt/2
+    for i ∈ index:stride:size(mainList, 1)
+        for k in axes(mainList, 3)
+            mainList[i, 1, k] += mainList[i, 2, k] * dt / 2
+        end
+        for k in axes(mainList, 3)
+            mainList[i, 2, k] += (mainList[i, 3, k]*dt / mainList[i, 4, 1])
+        end
+        for k in axes(mainList, 3)
+            mainList[i, 1, k] += mainList[i, 2, k]*dt/2
+        end
+        # mainList[i, 2, :] .+= (mainList[i, 3, :]*dt ./ mainList[i, 4, 1])
+        # mainList[i, 1, :] .+= mainList[i, 2, :]*dt/2
         mainList[i, 3, :] .= 0
     end
+
+    return nothing
 
 end
 
 
 mainList_d = CuArray(mainList)
-@cuda threads=256 blocks=1 gpu_updateParticles(mainList_d, Int32(G), maxForce)
+@cuda threads=256 blocks=3 gpu_updateParticles(mainList_d, Int32(G), Float32(maxForce), Float32(dt))
 # anim = @animate for i in 1:50
 #     plot()
 #     plot!(legend= false)
@@ -102,9 +117,9 @@ mainList_d = CuArray(mainList)
 # end
 
 
-display(anim)
+# display(anim)
 # animate(anim)
-gif(anim, "./Projects/Basic_N-Body_Sim/n_body_simulation.gif", fps=15)
+# gif(anim, "./Projects/Basic_N-Body_Sim/n_body_simulation.gif", fps=15)
 # for i ∈ 1:200
 #     for j ∈ 1:PARTICLES
 #         updateForceAtParticle(mainList, j, G)
