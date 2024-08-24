@@ -4,7 +4,7 @@ using Plots
 using Animations
 using CUDA
 gr()
-PARTICLES = 8000
+PARTICLES = 100
 
 G = 100
 maxForce = 150
@@ -14,7 +14,7 @@ min_range, max_range = 50, 850
 mainList = zeros(Float32, PARTICLES, 4, 2)
 mainList[:, 4, 1] .= 1
 mainList[:, 4, 2] .= 1
-
+u
 # mainList[:, 1, 1] .= rand(1:300)
 # mainList[:, 1, 2] .= rand(1:300)
 
