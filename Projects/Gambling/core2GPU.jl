@@ -36,10 +36,10 @@ end
 # end
 
 # const iterations = 1000
-const people = 51200000
-const initialBalance = 100
-const iterationsCount = 2000
-const viewValues = 1950
+people =  51200000
+initialBalance = 100
+iterationsCount = 1000
+viewValues = iterationsCount - 50
 function main_func()
     state = ones(people, 5)
     state[:, 1] .= initialBalance
@@ -82,8 +82,11 @@ function main_func()
 end
 
 
+@time begin
+    array_final = main_func()
+end
 
-array_final = main_func()
+println("GPU Done")
 plot(array_final)
 
 
